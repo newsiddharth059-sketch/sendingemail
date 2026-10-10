@@ -65,6 +65,14 @@ const upload = multer({
     cb(isPdf ? null : new Error("Please upload a PDF file."), isPdf);
   }
 });
+const directoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const isPdf = file.mimetype === "application/pdf" || path.extname(file.originalname).toLowerCase() === ".pdf";
+    cb(isPdf ? null : new Error("Please upload a PDF directory."), isPdf);
+  }
+});
 
 app.get("/api/data", (_req, res) => {
   const db = readDb();
@@ -160,6 +168,51 @@ app.get("/api/resumes/:id/download", (req, res) => {
   const filePath = path.join(UPLOAD_DIR, resume.filename);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Resume file is missing from local storage." });
   res.download(filePath, resume.originalName);
+});
+
+app.post("/api/import/pdf-preview", directoryUpload.single("directory"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Choose the opportunities directory PDF first." });
+  try {
+    const parsed = await pdfParse(req.file.buffer);
+    const text = String(parsed.text || "");
+    const emails = [...new Set(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi) || [])]
+      .map((email) => email.toLowerCase());
+    const genericDomains = new Set(["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "rediffmail.com", "icloud.com"]);
+    const candidates = emails.map((email) => {
+      const domain = email.split("@")[1];
+      const domainName = domain.split(".")[0].replace(/[-_]/g, " ");
+      const company = genericDomains.has(domain) ? "" : domainName.replace(/\\b\\w/g, (letter) => letter.toUpperCase());
+      const index = text.toLowerCase().indexOf(email);
+      const context = text.slice(Math.max(0, index - 100), Math.min(text.length, index + email.length + 100)).replace(/\\s+/g, " ").trim();
+      return { email, company, context };
+    });
+    res.json({ filename: path.basename(req.file.originalname), count: candidates.length, candidates });
+  } catch {
+    res.status(400).json({ error: "Could not read this PDF. Try a text-based PDF or enter contacts manually." });
+  }
+});
+
+app.post("/api/contacts/bulk", (req, res) => {
+  if (!Array.isArray(req.body.contacts)) return res.status(400).json({ error: "Provide a list of contacts to import." });
+  const db = readDb();
+  const existing = new Set(db.contacts.map((contact) => contact.email.toLowerCase()));
+  const added = [];
+  for (const item of req.body.contacts.slice(0, 500)) {
+    const email = cleanString(item.email, 254).toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || existing.has(email)) continue;
+    const contact = {
+      id: crypto.randomUUID(),
+      name: cleanString(item.name, 120),
+      email,
+      company: cleanString(item.company, 120),
+      notes: cleanString(item.notes, 500) || "Imported from opportunities PDF"
+    };
+    db.contacts.push(contact);
+    added.push(contact);
+    existing.add(email);
+  }
+  writeDb(db);
+  res.status(201).json({ addedCount: added.length, skippedCount: req.body.contacts.length - added.length, contacts: added });
 });
 
 app.post("/api/contacts", (req, res) => {
