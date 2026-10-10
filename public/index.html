@@ -15,7 +15,7 @@
     <section class="intro"><p class="eyebrow">YOUR JOB SEARCH WORKSPACE</p><h1>Manage resumes. Match smarter.</h1><p>Keep multiple resume versions and recruiter emails in one place. Test a job description and see which resume should be used.</p></section>
     <div id="notice" class="notice" hidden></div>
     <section class="panel">
-      <div class="section-head"><div><p class="eyebrow">01 / RESUME LIBRARY</p><h2>Your resumes</h2><p class="muted">Upload PDF versions and label them with relevant skills. Set one as the fallback resume.</p></div><span id="resume-count" class="count">0 resumes</span></div>
+      <div class="section-head"><div><p class="eyebrow">01 / RESUME LIBRARY</p><h2>Your resumes</h2><p class="muted">Upload multiple PDF versions. The app reads selectable PDF text and compares it with job requirements; labels and skills help improve matching. Set one as the fallback resume.</p></div><span id="resume-count" class="count">0 resumes</span></div>
       <form id="resume-form" class="upload-grid">
         <label class="field">Resume PDF<input type="file" name="resume" accept="application/pdf,.pdf" required><small>PDF only · max 8 MB</small></label>
         <label class="field">Resume label<input name="label" placeholder="e.g. React Frontend Developer" maxlength="80"></label>
@@ -26,7 +26,7 @@
       <div id="resume-list" class="item-list"></div>
     </section>
     <section class="panel">
-      <div class="section-head"><div><p class="eyebrow">02 / SMART MATCH</p><h2>Find the best resume for a job</h2><p class="muted">The match uses your labels and skills. Review the result before using it.</p></div></div>
+      <div class="section-head"><div><p class="eyebrow">02 / SMART MATCH</p><h2>Find the best resume for a job</h2><p class="muted">The match checks extracted PDF text plus your labels, skills, and notes against the job description. Review the result before applying.</p></div></div>
       <form id="match-form" class="stack">
         <label class="field">Job title<input name="jobTitle" placeholder="e.g. Junior React Developer"></label>
         <label class="field">Job description<textarea name="jobDescription" rows="5" placeholder="Paste the job requirements and responsibilities here..."></textarea></label>
