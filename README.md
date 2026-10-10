@@ -10,6 +10,7 @@ A Node.js starter app for managing job-application email addresses and multiple 
 - Keep extracted resume text private in local storage; it is not returned by the API.
 - Choose the highest-scoring resume when it meets the configured threshold; otherwise choose the default resume.
 - Add, edit, and delete HR/recruiter email contacts.
+- Upload an opportunities-directory PDF, preview extracted email addresses, then select which contacts to import; duplicate addresses are skipped.
 - Local JSON metadata and local PDF storage for the starter version.
 
 ## Run locally
@@ -36,4 +37,4 @@ The OAuth scope is limited to Gmail compose/draft capability; this app has no au
 This is a local development app. Never commit OAuth credentials, tokens, passwords, or resume PDFs to GitHub. The app stores uploaded resumes, extracted resume text, contacts, and OAuth tokens on the machine running the server. It does not yet include login/authentication, so do not expose it to the public internet or deploy it as-is. Use only trusted local access until authentication and secure deployment are added.
 
 ## Resume matching
-Matching uses a transparent keyword score across the job title/description, extracted selectable text from the PDF, and user-entered label, skills, and notes. It is a heuristic—not an AI judgement or a guarantee of suitability. Scanned/image-only PDFs may have little or no extractable text, so add skills manually for those files. Check the selected resume before creating or sending an application. If no resume reaches the threshold, the configured default resume is selected.
+The opportunities PDF importer extracts email addresses from selectable PDF text and estimates company names from non-generic email domains. It previews candidates before import; it does not reliably infer job titles or company names from every PDF layout, and it skips masked/truncated addresses. Matching uses a transparent keyword score across the job title/description, extracted selectable text from the resume PDF, and user-entered label, skills, and notes. It is a heuristic—not an AI judgement or a guarantee of suitability. Scanned/image-only PDFs may have little or no extractable text, so add skills manually for those files. Check the selected resume before creating or sending an application. If no resume reaches the threshold, the configured default resume is selected.
