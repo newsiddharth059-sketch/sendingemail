@@ -46,7 +46,21 @@
       </form>
       <div id="contact-list" class="item-list"></div>
     </section>
-    <footer>Resume matching is a keyword-based estimate, not a hiring prediction. Verify every selected attachment before applying.</footer>
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">04 / GMAIL DRAFTS</p><h2>Create a draft with the matched resume</h2><p class="muted">This creates a Gmail draft only. It never sends automatically; open Gmail to review the message and attachment.</p></div></div>
+      <div class="gmail-connect"><span id="gmail-status">Checking Gmail connection…</span><button id="connect-gmail" class="small-btn" type="button">Connect Gmail</button></div>
+      <form id="draft-form" class="stack">
+        <label class="field">Send to saved HR / recruiter<select name="contactId" id="draft-contact" required><option value="">Choose a contact</option></select></label>
+        <label class="field">Job title<input name="jobTitle" placeholder="e.g. Junior React Developer"></label>
+        <label class="field">Job description<textarea name="jobDescription" rows="4" placeholder="Paste job requirements for resume matching (recommended)"></textarea></label>
+        <label class="field">Minimum match score<select name="threshold"><option value="15">15% — flexible</option><option value="25" selected>25% — balanced</option><option value="40">40% — strict</option><option value="60">60% — very strict</option></select></label>
+        <label class="field">Email subject (optional)<input name="subject" placeholder="Auto-generated if blank"></label>
+        <label class="field">Email body (optional)<textarea name="body" rows="5" placeholder="Leave blank for a short professional draft, or write your own message"></textarea></label>
+        <button class="primary" type="submit">Create Gmail draft + attach selected resume</button>
+      </form>
+      <div id="draft-result" class="match-result empty">Connect Gmail and save at least one recruiter contact and resume to create a draft.</div>
+    </section>
+    <footer>Resume matching is a keyword-based estimate, not a hiring prediction. Verify every selected attachment before applying. Gmail integration creates drafts only.</footer>
   </main>
   <script src="/app.js" defer></script>
 </body>
