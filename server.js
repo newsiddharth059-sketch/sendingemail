@@ -3,6 +3,7 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const pdfParse = require("pdf-parse");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,16 +28,28 @@ function writeDb(db) {
 function cleanString(value, max = 500) {
   return String(value || "").trim().slice(0, max);
 }
+const STOP_WORDS = new Set([
+  "the", "and", "for", "with", "you", "your", "our", "are", "will", "can", "all",
+  "have", "has", "had", "this", "that", "from", "into", "their", "they", "them",
+  "who", "what", "when", "where", "how", "why", "not", "but", "job", "role",
+  "work", "working", "team", "years", "year", "good", "strong", "ability", "skills",
+  "experience", "required", "requirements", "responsibilities", "preferred", "plus",
+  "using", "use", "used", "build", "building", "develop", "developing", "including",
+  "such", "must", "should", "would", "about", "more", "other", "both", "each", "etc"
+]);
 function tokens(value) {
   return [...new Set(String(value || "").toLowerCase().match(/[a-z0-9+#.]+/g) || [])]
-    .filter((word) => word.length > 1);
+    .filter((word) => word.length > 1 && !STOP_WORDS.has(word));
 }
 function scoreResume(resume, jobText) {
   const jobTokens = tokens(jobText);
   if (!jobTokens.length) return 0;
-  const resumeTokens = new Set(tokens([resume.label, resume.skills, resume.notes].join(" ")));
+  const resumeText = [resume.label, resume.skills, resume.notes, resume.extractedText].join(" ").toLowerCase();
+  const resumeTokens = new Set(tokens(resumeText));
   const matched = jobTokens.filter((word) => resumeTokens.has(word));
-  return Math.round((matched.length / jobTokens.length) * 100);
+  const tokenCoverage = matched.length / jobTokens.length;
+  const keywordCoverage = Math.min(1, matched.length / Math.min(8, jobTokens.length));
+  return Math.min(100, Math.round((tokenCoverage * 75 + keywordCoverage * 25) * 100) / 100);
 }
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
@@ -61,8 +74,16 @@ app.get("/api/data", (_req, res) => {
   });
 });
 
-app.post("/api/resumes", upload.single("resume"), (req, res) => {
+app.post("/api/resumes", upload.single("resume"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Choose a PDF resume first." });
+  let extractedText = "";
+  try {
+    const parsed = await pdfParse(fs.readFileSync(req.file.path));
+    extractedText = cleanString(parsed.text, 30000);
+  } catch (error) {
+    try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(400).json({ error: "We could not read this PDF. Please try another PDF file." });
+  }
   const db = readDb();
   const resume = {
     id: crypto.randomUUID(),
@@ -71,12 +92,14 @@ app.post("/api/resumes", upload.single("resume"), (req, res) => {
     label: cleanString(req.body.label, 80) || path.basename(req.file.originalname, ".pdf"),
     skills: cleanString(req.body.skills, 1000),
     notes: cleanString(req.body.notes, 1000),
+    extractedText,
     createdAt: new Date().toISOString()
   };
   db.resumes.push(resume);
   if (!db.defaultResumeId) db.defaultResumeId = resume.id;
   writeDb(db);
-  res.status(201).json({ ...resume, isDefault: db.defaultResumeId === resume.id });
+  const { extractedText: _privateText, ...publicResume } = resume;
+  res.status(201).json({ ...publicResume, isDefault: db.defaultResumeId === resume.id });
 });
 
 app.patch("/api/resumes/:id", (req, res) => {
