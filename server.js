@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const pdfParse = require("pdf-parse");
+const { google } = require("googleapis");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -195,6 +196,146 @@ app.delete("/api/contacts/:id", (req, res) => {
   if (before === db.contacts.length) return res.status(404).json({ error: "Contact not found." });
   writeDb(db);
   res.json({ success: true });
+});
+
+
+const GMAIL_TOKEN_FILE = path.join(DATA_DIR, "gmail-token.json");
+const oauthStates = new Set();
+
+function gmailOAuthClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/oauth2callback`;
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+}
+function gmailAuthorizedClient() {
+  const oauth = gmailOAuthClient();
+  if (!oauth || !fs.existsSync(GMAIL_TOKEN_FILE)) return null;
+  try {
+    oauth.setCredentials(JSON.parse(fs.readFileSync(GMAIL_TOKEN_FILE, "utf8")));
+    return oauth;
+  } catch {
+    return null;
+  }
+}
+function base64Lines(value) {
+  return Buffer.from(value).toString("base64").match(/.{1,76}/g)?.join("\r\n") || "";
+}
+function makeRawEmail({ to, subject, body, filename, pdfBuffer }) {
+  const boundary = `sendingemail_${crypto.randomUUID().replace(/-/g, "")}`;
+  const safeFilename = path.basename(filename).replace(/["\\r\\n]/g, "_");
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject.replace(/[\\r\\n]/g, " ").slice(0, 250)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    base64Lines(body),
+    `--${boundary}`,
+    `Content-Type: application/pdf; name="${safeFilename}"`,
+    `Content-Disposition: attachment; filename="${safeFilename}"`,
+    "Content-Transfer-Encoding: base64",
+    "",
+    pdfBuffer.toString("base64").match(/.{1,76}/g)?.join("\r\n") || "",
+    `--${boundary}--`,
+    ""
+  ].join("\r\n");
+  return Buffer.from(message).toString("base64url");
+}
+
+app.get("/api/gmail/status", (_req, res) => {
+  const configured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const connected = Boolean(gmailAuthorizedClient());
+  res.json({ configured, connected, mode: "drafts-only" });
+});
+
+app.get("/api/gmail/auth", (req, res) => {
+  const oauth = gmailOAuthClient();
+  if (!oauth) return res.status(400).json({ error: "Gmail is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your local .env file first." });
+  const state = crypto.randomBytes(24).toString("hex");
+  oauthStates.add(state);
+  const url = oauth.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: ["https://www.googleapis.com/auth/gmail.compose"],
+    state
+  });
+  res.json({ url });
+});
+
+app.get("/oauth2callback", async (req, res) => {
+  const oauth = gmailOAuthClient();
+  if (!oauth) return res.status(400).send("Gmail is not configured. Add your local OAuth credentials and restart the app.");
+  if (!req.query.state || !oauthStates.has(String(req.query.state))) return res.status(400).send("OAuth state check failed. Return to the app and try connecting Gmail again.");
+  oauthStates.delete(String(req.query.state));
+  if (req.query.error) return res.redirect("/?gmail=cancelled");
+  try {
+    const { tokens } = await oauth.getToken(String(req.query.code || ""));
+    oauth.setCredentials(tokens);
+    fs.writeFileSync(GMAIL_TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+    res.redirect("/?gmail=connected");
+  } catch (error) {
+    res.status(400).send("Could not connect Gmail. Return to the app and try again.");
+  }
+});
+
+app.post("/api/drafts/create", async (req, res) => {
+  const oauth = gmailAuthorizedClient();
+  if (!oauth) return res.status(400).json({ error: "Connect Gmail first. If it is not configured, follow the Gmail setup instructions in README.md." });
+  const db = readDb();
+  const contact = db.contacts.find((item) => item.id === req.body.contactId);
+  if (!contact) return res.status(400).json({ error: "Choose a saved HR/recruiter contact first." });
+  const jobTitle = cleanString(req.body.jobTitle, 200);
+  const jobDescription = cleanString(req.body.jobDescription, 12000);
+  if (!jobTitle && !jobDescription) return res.status(400).json({ error: "Enter a job title or description." });
+  const jobText = [jobTitle, jobDescription].join(" ");
+  const ranked = db.resumes.map((resume) => ({ resume, score: scoreResume(resume, jobText) })).sort((a, b) => b.score - a.score);
+  const threshold = Math.max(1, Math.min(100, Number(req.body.threshold) || 25));
+  const best = ranked[0];
+  const hasGoodMatch = best && best.score >= threshold;
+  const chosen = hasGoodMatch ? best.resume : db.resumes.find((item) => item.id === db.defaultResumeId);
+  if (!chosen) return res.status(400).json({ error: "Upload at least one resume before creating a draft." });
+  const resumePath = path.join(UPLOAD_DIR, chosen.filename);
+  if (!fs.existsSync(resumePath)) return res.status(404).json({ error: "The selected resume file is missing from local storage." });
+  const company = cleanString(contact.company, 120);
+  const role = jobTitle || "the suitable opportunity";
+  const skills = cleanString(chosen.skills, 500);
+  const greeting = cleanString(contact.name, 120) ? `Dear ${cleanString(contact.name, 120)},` : "Dear Hiring Team,";
+  const defaultSubject = `Application for ${role}${company ? ` — ${company}` : ""}`;
+  const defaultBody = [
+    greeting,
+    "",
+    `I am writing to apply for the ${role}${company ? ` position at ${company}` : " position"}.`,
+    skills ? `My relevant skills include ${skills}.` : "My background includes web development, JavaScript, React.js, Node.js, databases, and application support.",
+    "I have attached my resume for your consideration. I would appreciate the opportunity to discuss how my background fits your requirements.",
+    "",
+    "Regards,",
+    "Siddharth Dubey",
+    "siddharthd067@gmail.com"
+  ].join("\n");
+  const subject = cleanString(req.body.subject, 250) || defaultSubject;
+  const body = cleanString(req.body.body, 8000) || defaultBody;
+  try {
+    const gmail = google.gmail({ version: "v1", auth: oauth });
+    const raw = makeRawEmail({ to: contact.email, subject, body, filename: chosen.originalName, pdfBuffer: fs.readFileSync(resumePath) });
+    const result = await gmail.users.drafts.create({ userId: "me", requestBody: { message: { raw } } });
+    res.status(201).json({
+      success: true,
+      draftId: result.data.id,
+      recipient: contact.email,
+      subject,
+      resume: { id: chosen.id, label: chosen.label, originalName: chosen.originalName, score: scoreResume(chosen, jobText) },
+      usedFallback: !hasGoodMatch,
+      message: "Gmail draft created. Review the message and attachment in Gmail before sending."
+    });
+  } catch (error) {
+    res.status(502).json({ error: "Gmail could not create the draft. Check the connected account and OAuth permissions, then try again." });
+  }
 });
 
 app.use((err, _req, res, _next) => {
