@@ -18,8 +18,22 @@ A Node.js starter app for managing job-application email addresses and multiple 
 3. Run `npm start`.
 4. Open http://localhost:3000.
 
+## Gmail draft setup (local development)
+The app can create Gmail drafts with the selected resume attached. It does **not** send emails automatically.
+
+1. Open Google Cloud Console and create/select a project.
+2. Enable the **Gmail API** for that project.
+3. Configure the OAuth consent screen and add your own Gmail account as a test user if the app is in testing mode.
+4. Create an OAuth Client ID with application type **Web application**.
+5. Add this exact authorized redirect URI: `http://localhost:3000/oauth2callback`.
+6. Copy `.env.example` to a new file named `.env` and fill in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Keep the redirect URI as shown for local development.
+7. Run `npm install` and `npm start`, open `http://localhost:3000`, add at least one recruiter contact and one resume, then click **Connect Gmail**.
+8. Approve the requested Gmail compose permission. Use the **Create Gmail draft** panel. Open Gmail → Drafts to inspect the email and attached resume before sending.
+
+The OAuth scope is limited to Gmail compose/draft capability; this app has no automatic-send route. The local OAuth token is stored in `data/gmail-token.json`, which is ignored by Git. If you change the redirect URI or credentials, update the local `.env` file accordingly.
+
 ## Important
-This is a local starter app. It does not send email or create Gmail drafts yet. Gmail OAuth and draft creation should be added as a separate integration; never commit OAuth credentials, tokens, passwords, or resume PDFs to GitHub. The app stores uploaded resumes on the machine running the server. Add authentication and private hosting before exposing it to the internet.
+This is a local development app. Never commit OAuth credentials, tokens, passwords, or resume PDFs to GitHub. The app stores uploaded resumes, extracted resume text, contacts, and OAuth tokens on the machine running the server. It does not yet include login/authentication, so do not expose it to the public internet or deploy it as-is. Use only trusted local access until authentication and secure deployment are added.
 
 ## Resume matching
 Matching uses a transparent keyword score across the job title/description, extracted selectable text from the PDF, and user-entered label, skills, and notes. It is a heuristic—not an AI judgement or a guarantee of suitability. Scanned/image-only PDFs may have little or no extractable text, so add skills manually for those files. Check the selected resume before creating or sending an application. If no resume reaches the threshold, the configured default resume is selected.
