@@ -370,7 +370,7 @@ app.post("/api/drafts/create", async (req, res) => {
     "",
     "Regards,",
     "Siddharth Dubey",
-    "siddharthd067@gmail.com"
+    "newsiddharth059@gmail.com"
   ].join("\n");
   const subject = cleanString(req.body.subject, 250) || defaultSubject;
   const body = cleanString(req.body.body, 8000) || defaultBody;
