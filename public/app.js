@@ -46,13 +46,13 @@ function renderResumes() {
 function renderContacts() {
   $("#contact-count").textContent = state.contacts.length + (state.contacts.length === 1 ? " contact" : " contacts");
   const list = $("#contact-list");
-  if (!state.contacts.length) { list.innerHTML = '<div class="empty-list">No contacts saved yet.</div>'; return; }
   const select = $("#draft-contact");
   if (select) {
     const selected = select.value;
     select.innerHTML = '<option value="">Choose a contact</option>' + state.contacts.map((c) => `<option value="${c.id}">${escapeHtml(c.name || c.email)} — ${escapeHtml(c.email)}</option>`).join("");
     if (state.contacts.some((c) => c.id === selected)) select.value = selected;
   }
+  if (!state.contacts.length) { list.innerHTML = '<div class="empty-list">No contacts saved yet.</div>'; return; }
   list.innerHTML = state.contacts.map((contact) => `
     <article class="item">
       <div class="item-main">
