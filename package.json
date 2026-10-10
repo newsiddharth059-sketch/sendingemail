@@ -1,0 +1,17 @@
+{
+  "name": "sendingemail",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Job application email assistant with editable email contacts and multiple resume matching",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "pdf-parse": "^1.1.1"
+  }
+}
