@@ -29,7 +29,7 @@ The app can create Gmail drafts with the selected resume attached. It does **not
 5. Add this exact authorized redirect URI: `http://localhost:3000/oauth2callback`.
 6. Copy `.env.example` to a new file named `.env` and fill in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Keep the redirect URI as shown for local development.
 7. Run `npm install` and `npm start`, open `http://localhost:3000`, add at least one recruiter contact and one resume, then click **Connect Gmail**.
-8. Approve the requested Gmail compose permission. Use the **Create Gmail draft** panel. Open Gmail → Drafts to inspect the email and attached resume before sending.
+8. When Google asks you to choose an account, use `newsiddharth059@gmail.com` (the app suggests this account during sign-in). Approve the requested Gmail compose permission. Use the **Create Gmail draft** panel. Open Gmail → Drafts to inspect the email and attached resume before sending.
 
 The OAuth scope is limited to Gmail compose/draft capability; this app has no automatic-send route. The local OAuth token is stored in `data/gmail-token.json`, which is ignored by Git. If you change the redirect URI or credentials, update the local `.env` file accordingly.
 
