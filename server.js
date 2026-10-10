@@ -225,10 +225,10 @@ function base64Lines(value) {
 }
 function makeRawEmail({ to, subject, body, filename, pdfBuffer }) {
   const boundary = `sendingemail_${crypto.randomUUID().replace(/-/g, "")}`;
-  const safeFilename = path.basename(filename).replace(/["\\r\\n]/g, "_");
+  const safeFilename = path.basename(filename).replace(/["\r\n]/g, "_");
   const message = [
     `To: ${to}`,
-    `Subject: ${subject.replace(/[\\r\\n]/g, " ").slice(0, 250)}`,
+    `Subject: ${subject.replace(/[\r\n]/g, " ").slice(0, 250)}`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     "",
