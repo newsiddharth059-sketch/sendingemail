@@ -316,6 +316,7 @@ app.get("/api/gmail/auth", (req, res) => {
   const url = oauth.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
+    login_hint: "newsiddharth059@gmail.com",
     scope: ["https://www.googleapis.com/auth/gmail.compose"],
     state
   });
