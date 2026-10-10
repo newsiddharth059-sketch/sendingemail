@@ -47,6 +47,12 @@ function renderContacts() {
   $("#contact-count").textContent = state.contacts.length + (state.contacts.length === 1 ? " contact" : " contacts");
   const list = $("#contact-list");
   if (!state.contacts.length) { list.innerHTML = '<div class="empty-list">No contacts saved yet.</div>'; return; }
+  const select = $("#draft-contact");
+  if (select) {
+    const selected = select.value;
+    select.innerHTML = '<option value="">Choose a contact</option>' + state.contacts.map((c) => `<option value="${c.id}">${escapeHtml(c.name || c.email)} — ${escapeHtml(c.email)}</option>`).join("");
+    if (state.contacts.some((c) => c.id === selected)) select.value = selected;
+  }
   list.innerHTML = state.contacts.map((contact) => `
     <article class="item">
       <div class="item-main">
@@ -136,4 +142,48 @@ document.body.addEventListener("click", async (event) => {
     }
   } catch (error) { showNotice(error.message, true); }
 });
+
+async function refreshGmailStatus() {
+  const status = $("#gmail-status");
+  if (!status) return;
+  try {
+    const data = await api("/api/gmail/status");
+    status.textContent = data.connected ? "Gmail connected — drafts-only permission" : data.configured ? "Gmail is configured but not connected" : "Gmail setup needed — see README.md";
+    $("#connect-gmail").textContent = data.connected ? "Reconnect Gmail" : "Connect Gmail";
+  } catch {
+    status.textContent = "Could not check Gmail connection.";
+  }
+}
+$("#connect-gmail")?.addEventListener("click", async () => {
+  try {
+    const result = await api("/api/gmail/auth");
+    window.location.href = result.url;
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+});
+$("#draft-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const target = $("#draft-result");
+  target.className = "match-result";
+  target.textContent = "Creating Gmail draft and attaching the recommended resume…";
+  try {
+    const result = await api("/api/drafts/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(form))
+    });
+    target.innerHTML = `<strong>Gmail draft created</strong><br>To: ${escapeHtml(result.recipient)}<br>Subject: ${escapeHtml(result.subject)}<br>Attached resume: ${escapeHtml(result.resume.originalName)} (${result.resume.score}% match)${result.usedFallback ? "<p><strong>Fallback used:</strong> No resume reached the threshold, so your default resume was attached.</p>" : ""}<p>Open Gmail → Drafts to review the email and attachment before sending.</p>`;
+    target.className = "match-result";
+  } catch (error) {
+    target.textContent = error.message;
+    target.className = "match-result";
+  }
+});
+const params = new URLSearchParams(window.location.search);
+if (params.get("gmail") === "connected") showNotice("Gmail connected successfully. Draft creation is enabled.");
+if (params.get("gmail") === "cancelled") showNotice("Gmail connection was cancelled.", true);
+
+refreshGmailStatus();
 refresh().catch((error) => showNotice("Could not load your data: " + error.message, true));
