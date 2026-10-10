@@ -1,5 +1,5 @@
 const $ = (selector) => document.querySelector(selector);
-const state = { resumes: [], contacts: [], defaultResumeId: null };
+const state = { resumes: [], contacts: [], defaultResumeId: null, directoryCandidates: [], directoryFilename: "" };
 const notice = $("#notice");
 
 function showNotice(message, error = false) {
@@ -75,6 +75,53 @@ $("#resume-form").addEventListener("submit", async (event) => {
     showNotice("Resume uploaded. " + (result.isDefault ? "It is currently your default resume." : "You can set it as default anytime."));
   } catch (error) { showNotice(error.message, true); }
 });
+
+$("#directory-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  try {
+    const result = await api("/api/import/pdf-preview", { method: "POST", body: form });
+    state.directoryCandidates = result.candidates || [];
+    state.directoryFilename = result.filename || "opportunities PDF";
+    const preview = $("#directory-preview");
+    preview.hidden = false;
+    $("#directory-summary").textContent = state.directoryCandidates.length
+      ? `Found ${state.directoryCandidates.length} unique email address(es) in ${state.directoryFilename}. Company names are estimated from email domains; review before importing.`
+      : `No email addresses were found in ${state.directoryFilename}. It may be scanned/image-only or contain no emails.`;
+    $("#directory-candidates").innerHTML = state.directoryCandidates.map((candidate, index) => `
+      <label class="directory-candidate">
+        <input type="checkbox" data-directory-index="${index}" checked>
+        <span><strong>${escapeHtml(candidate.email)}</strong><small>${escapeHtml(candidate.company || "Company not detected")}</small><small>${escapeHtml(candidate.context || "")}</small></span>
+      </label>`).join("");
+    $("#import-selected").disabled = !state.directoryCandidates.length;
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+});
+$("#import-selected")?.addEventListener("click", async () => {
+  const indexes = [...document.querySelectorAll("[data-directory-index]:checked")].map((input) => Number(input.dataset.directoryIndex));
+  const contacts = indexes.map((index) => state.directoryCandidates[index]).filter(Boolean).map((item) => ({
+    email: item.email,
+    company: item.company,
+    notes: `Imported from ${state.directoryFilename}`
+  }));
+  if (!contacts.length) return showNotice("Select at least one contact to import.", true);
+  try {
+    const result = await api("/api/contacts/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contacts })
+    });
+    await refresh();
+    showNotice(`Imported ${result.addedCount} contact(s). ${result.skippedCount} duplicate or invalid address(es) were skipped.`);
+    $("#directory-preview").hidden = true;
+    $("#directory-form").reset();
+    state.directoryCandidates = [];
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+});
+
 $("#contact-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
