@@ -37,6 +37,15 @@
     </section>
     <section class="panel">
       <div class="section-head"><div><p class="eyebrow">03 / CONTACTS</p><h2>HR & recruiter emails</h2><p class="muted">Save and update email addresses as your job list grows.</p></div><span id="contact-count" class="count">0 contacts</span></div>
+      <form id="directory-form" class="upload-grid">
+        <label class="field">Opportunities directory PDF<input type="file" name="directory" accept="application/pdf,.pdf" required><small>Scans for email addresses; review the results before importing.</small></label>
+        <button class="primary" type="submit">Scan PDF for contacts</button>
+      </form>
+      <div id="directory-preview" class="directory-preview" hidden>
+        <div id="directory-summary" class="muted"></div>
+        <div id="directory-candidates" class="directory-candidates"></div>
+        <button id="import-selected" class="primary" type="button">Import selected contacts</button>
+      </div>
       <form id="contact-form" class="contact-grid">
         <label class="field">Name<input name="name" placeholder="Recruiter name"></label>
         <label class="field">Email address<input name="email" type="email" placeholder="hr@company.com" required></label>
