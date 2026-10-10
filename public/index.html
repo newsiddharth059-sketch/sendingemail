@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SendingEmail — Job Application Assistant</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">S</span><div><strong>SendingEmail</strong><small>Job application assistant</small></div></div>
+    <span class="local-badge">Local workspace</span>
+  </header>
+  <main class="container">
+    <section class="intro"><p class="eyebrow">YOUR JOB SEARCH WORKSPACE</p><h1>Manage resumes. Match smarter.</h1><p>Keep multiple resume versions and recruiter emails in one place. Test a job description and see which resume should be used.</p></section>
+    <div id="notice" class="notice" hidden></div>
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">01 / RESUME LIBRARY</p><h2>Your resumes</h2><p class="muted">Upload PDF versions and label them with relevant skills. Set one as the fallback resume.</p></div><span id="resume-count" class="count">0 resumes</span></div>
+      <form id="resume-form" class="upload-grid">
+        <label class="field">Resume PDF<input type="file" name="resume" accept="application/pdf,.pdf" required><small>PDF only · max 8 MB</small></label>
+        <label class="field">Resume label<input name="label" placeholder="e.g. React Frontend Developer" maxlength="80"></label>
+        <label class="field span-two">Skills / keywords<input name="skills" placeholder="React, JavaScript, HTML, CSS, REST API"></label>
+        <label class="field span-two">Notes (optional)<input name="notes" placeholder="Projects, experience, role focus"></label>
+        <button class="primary" type="submit">＋ Upload resume</button>
+      </form>
+      <div id="resume-list" class="item-list"></div>
+    </section>
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">02 / SMART MATCH</p><h2>Find the best resume for a job</h2><p class="muted">The match uses your labels and skills. Review the result before using it.</p></div></div>
+      <form id="match-form" class="stack">
+        <label class="field">Job title<input name="jobTitle" placeholder="e.g. Junior React Developer"></label>
+        <label class="field">Job description<textarea name="jobDescription" rows="5" placeholder="Paste the job requirements and responsibilities here..."></textarea></label>
+        <label class="field">Minimum match score <select name="threshold"><option value="15">15% — flexible</option><option value="25" selected>25% — balanced</option><option value="40">40% — strict</option><option value="60">60% — very strict</option></select></label>
+        <button class="primary" type="submit">Analyze and select resume</button>
+      </form>
+      <div id="match-result" class="match-result empty">Your resume recommendation will appear here.</div>
+    </section>
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">03 / CONTACTS</p><h2>HR & recruiter emails</h2><p class="muted">Save and update email addresses as your job list grows.</p></div><span id="contact-count" class="count">0 contacts</span></div>
+      <form id="contact-form" class="contact-grid">
+        <label class="field">Name<input name="name" placeholder="Recruiter name"></label>
+        <label class="field">Email address<input name="email" type="email" placeholder="hr@company.com" required></label>
+        <label class="field">Company<input name="company" placeholder="Company name"></label>
+        <label class="field">Notes<input name="notes" placeholder="Role / source / follow-up"></label>
+        <button class="primary" type="submit">＋ Add contact</button>
+      </form>
+      <div id="contact-list" class="item-list"></div>
+    </section>
+    <footer>Resume matching is a keyword-based estimate, not a hiring prediction. Verify every selected attachment before applying.</footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
