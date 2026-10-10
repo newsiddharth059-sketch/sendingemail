@@ -2,3 +2,10 @@
 
 .gmail-connect { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; margin: 0 0 20px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; background: var(--surface, #f8fafc); }
 .gmail-connect span { font-size: 14px; color: var(--muted, #64748b); }
+
+.directory-preview { margin: 16px 0 22px; padding: 16px; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
+.directory-candidates { display: grid; gap: 8px; max-height: 360px; overflow: auto; margin: 14px 0; }
+.directory-candidate { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; cursor: pointer; }
+.directory-candidate input { margin-top: 4px; }
+.directory-candidate span { display: grid; gap: 3px; min-width: 0; overflow-wrap: anywhere; }
+.directory-candidate small { color: var(--muted, #64748b); font-size: 12px; }
