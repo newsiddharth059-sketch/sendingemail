@@ -175,15 +175,15 @@ app.post("/api/import/pdf-preview", directoryUpload.single("directory"), async (
   try {
     const parsed = await pdfParse(req.file.buffer);
     const text = String(parsed.text || "");
-    const emails = [...new Set(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi) || [])]
+    const emails = [...new Set(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])]
       .map((email) => email.toLowerCase());
     const genericDomains = new Set(["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "rediffmail.com", "icloud.com"]);
     const candidates = emails.map((email) => {
       const domain = email.split("@")[1];
       const domainName = domain.split(".")[0].replace(/[-_]/g, " ");
-      const company = genericDomains.has(domain) ? "" : domainName.replace(/\\b\\w/g, (letter) => letter.toUpperCase());
+      const company = genericDomains.has(domain) ? "" : domainName.replace(/\b\\w/g, (letter) => letter.toUpperCase());
       const index = text.toLowerCase().indexOf(email);
-      const context = text.slice(Math.max(0, index - 100), Math.min(text.length, index + email.length + 100)).replace(/\\s+/g, " ").trim();
+      const context = text.slice(Math.max(0, index - 100), Math.min(text.length, index + email.length + 100)).replace(/\s+/g, " ").trim();
       return { email, company, context };
     });
     res.json({ filename: path.basename(req.file.originalname), count: candidates.length, candidates });
@@ -199,7 +199,7 @@ app.post("/api/contacts/bulk", (req, res) => {
   const added = [];
   for (const item of req.body.contacts.slice(0, 500)) {
     const email = cleanString(item.email, 254).toLowerCase();
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || existing.has(email)) continue;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || existing.has(email)) continue;
     const contact = {
       id: crypto.randomUUID(),
       name: cleanString(item.name, 120),
